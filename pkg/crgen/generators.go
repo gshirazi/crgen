@@ -65,6 +65,9 @@ func NewCartesianGen(fields map[string]Generator) (*CartesianGen, error) {
 }
 
 func (g *CartesianGen) initIndices() {
+	g.indices = make(map[string]uint32)
+	g.initFields = make(map[string]Generator)
+	g.current = make(map[string]string)
 	for f := range g.Fields {
 		g.indices[f] = 0
 		g.initFields[f] = g.Fields[f]

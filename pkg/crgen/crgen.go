@@ -2,19 +2,21 @@ package crgen
 
 import (
 	"context"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
+	"strings"
 
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	log "github.com/sirupsen/logrus"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	// kubernetes/apiextensions-apiserver
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -105,6 +107,13 @@ func (c *CRGen)getSpecNames() ([]string, error) {
 	return specNames, nil
 }
 
+type CRBase struct{
+	ApiVersion string `json:"apiVersion,omitempty"`
+	Kind string `json:"apiVersion,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec map[string]string `json:"spec,omitempty"`
+}
+
 func (c *CRGen)Generate() error {
 	ctx := context.Background()
 	_, err := c.getKubeClient(ctx)
@@ -141,36 +150,31 @@ func (c *CRGen)Generate() error {
 	}
 	crVal := crGenerator.Next()
 	cnt := 0
-	CR := map[string]string{
-		"apiVersion": c.CRApiVersion,
-		"kind": c.CRKind,
-		"spec": crVal,
+	CR := CRBase{
+		ApiVersion: c.CRApiVersion,
+		Kind: c.CRKind,
 	}
-	// obj := v1.CustomResourceDefinition{}
-//		v1.ObjectMeta{Name: fmt.Sprintf("%s-crgen-%d", c.CRKind, cnt), Namespace: c.CRDNamespace},
-//	}
 	for ;crVal != NIL; {
+		spec := make(map[string]string)
+		if err := json.Unmarshal([]byte(crVal), &spec); err != nil {
+			log.Errorf("Unmarshal error: %v", err)
+		}
 		cnt = cnt + 1
-		bytes, err := json.Marshal(CR)
+		name := fmt.Sprintf("%s-crgen-%d", strings.ToLower(c.CRKind), cnt)
+		CR.ObjectMeta = metav1.ObjectMeta{
+			Namespace: c.CRDNamespace,
+			Name: name,
+		}
+		CR.Spec = spec
+		bytes, err := yaml.Marshal(CR)
 		if err != nil {
 			log.Errorf("Marshal error: %v", err)
 		}
-		// obj, groupVersionKind, err := scheme.Codecs.UniversalDeserializer().Decode(bytes, nil, nil)
-		_, _, err = scheme.Codecs.UniversalDeserializer().Decode(bytes, nil, nil)
-		if err != nil {
-			log.Errorf("Error while decoding json to object: %v", err)
+		if err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", name), bytes, 0); err != nil {
+			log.Errorf("Write error: %v", err)
 		}
-		
-		/*if err = json.Unmarshal(bytes, &obj); err != nil {
-			log.Errorf("Unmarshal error: %v", err)
-		}*/
 		// kubeClient.Create(ctx, obj)
 		crVal = crGenerator.Next()
-		CR = map[string]string{
-			"apiVersion": c.CRApiVersion,
-			"kind": c.CRKind,
-			"spec": crVal,
-		}
 	}
 	return nil
 }
