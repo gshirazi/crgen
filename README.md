@@ -3,11 +3,11 @@ Generate multiple CR instances for a CRD
 
 # Usage
 
-Assumming you have a CRD `my.crd.full.name/MyCRD` with 4 required fields `spec1,2,3,4`;
+Assumming you have a CRD `my.crd.full.name/MyCRD` in `mynamespace` with 4 required fields `spec1,2,3,4`;
 The following code snippet creates `255 * 1 * 5 * 1 = 1275` CR yaml files that can be installed on the cluster (using `kubectl apply -f`) for stress tests:
 
 ```
-import "https://github.com/gshirazi/crgen/pkg/crgen"
+import "github.com/gshirazi/crgen/pkg/crgen"
 
 spec1Gen, err := crgen.NewIPNetGen("100.100.100.0/24")
 if err != nil {
