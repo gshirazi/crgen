@@ -4,7 +4,7 @@ Generate multiple CR instances for a CRD
 # Usage
 
 Assumming you have a CRD `my.crd.full.name/MyCRD` with 4 required fields `spec1,2,3,4`;
-The following code snippet creates `255 * 2 * 5 * 1 = 2550` CR yaml files that can be installed on the cluster for stress test:
+The following code snippet creates `255 * 1 * 5 * 1 = 1275` CR yaml files that can be installed on the cluster (using `kubectl apply -f`) for stress tests:
 
 ```
 import "https://github.com/gshirazi/crgen/pkg/crgen"
