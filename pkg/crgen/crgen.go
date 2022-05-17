@@ -73,7 +73,7 @@ func (c *CRGen) getCRD(ctx context.Context) (*v1.CustomResourceDefinition, error
 	return crd, nil
 }
 
-func (c *CRGen)getSpecNames() ([]string, error) {
+func (c *CRGen)getSpec() (*v1.JSONSchemaProps, error) {
 	crd, err := c.getCRD(context.Background())
 	if err != nil {
 		return nil, err
@@ -99,19 +99,14 @@ func (c *CRGen)getSpecNames() ([]string, error) {
 		}
 	}
 	log.Debugf("got crd ver %s, schema properties: %#v", c.CRDVersion, spec.Properties)
-
-	specNames := []string{}
-	for specName := range spec.Properties {
-		specNames = append(specNames, specName)
-	}
-	return specNames, nil
+	return &spec, nil
 }
 
 type CRBase struct{
-	ApiVersion string `json:"apiVersion,omitempty"`
-	Kind string `json:"apiVersion,omitempty"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec map[string]string `json:"spec,omitempty"`
+	ApiVersion string `yaml:"apiVersion",json:"apiVersion"`
+	Kind string `yaml:"kind"`
+	metav1.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec map[string]string `yaml:"spec,omitempty"`
 }
 
 func (c *CRGen)Generate() error {
@@ -121,16 +116,20 @@ func (c *CRGen)Generate() error {
 		return err
 	}
 
-	specs, err := c.getSpecNames()
+	specs, err := c.getSpec()
 	if err != nil {
 		return err
+	}
+	specNames := []string{}
+	for specName := range specs.Properties {
+		specNames = append(specNames, specName)
 	}
 
 	validGenerators := make(map[string]Generator)
 	// validGeneratorNames := []string{}
 	for g, gen := range c.Generators {
 		found := false
-		for _, s := range specs {
+		for _, s := range specNames {
 			if s == g {
 				found = true
 				// validGeneratorNames = append(validGeneratorNames, g)
