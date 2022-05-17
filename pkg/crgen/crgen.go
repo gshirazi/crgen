@@ -13,7 +13,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -102,11 +102,16 @@ func (c *CRGen)getSpec() (*v1.JSONSchemaProps, error) {
 	return &spec, nil
 }
 
+type Meta struct{
+	Name string `yaml:"name"`
+	Namespace string `yaml:"namespace"`
+}
+
 type CRBase struct{
-	ApiVersion string `yaml:"apiVersion",json:"apiVersion"`
+	ApiVersion string `yaml:"apiVersion"`
 	Kind string `yaml:"kind"`
-	metav1.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec map[string]string `yaml:"spec,omitempty"`
+	Meta `yaml:"metadata,omitempty"`
+	Spec map[string]GenValue `yaml:"spec,omitempty"`
 }
 
 func (c *CRGen)Generate() error {
@@ -154,13 +159,13 @@ func (c *CRGen)Generate() error {
 		Kind: c.CRKind,
 	}
 	for ;crVal != NIL; {
-		spec := make(map[string]string)
-		if err := json.Unmarshal([]byte(crVal), &spec); err != nil {
+		spec := make(map[string]GenValue)
+		if err := json.Unmarshal([]byte(crVal.Val), &spec); err != nil {
 			log.Errorf("Unmarshal error: %v", err)
 		}
 		cnt = cnt + 1
 		name := fmt.Sprintf("%s-crgen-%d", strings.ToLower(c.CRKind), cnt)
-		CR.ObjectMeta = metav1.ObjectMeta{
+		CR.Meta = Meta{
 			Namespace: c.CRDNamespace,
 			Name: name,
 		}

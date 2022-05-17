@@ -13,23 +13,23 @@ func main() {
 		panic(err)
 	}
 
-	nhGen, err := crgen.NewSingletonGen("192.168.1.1", 1)
+	nhGen, err := crgen.NewSingletonGen("192.168.1.1", 1, "array")
 	if err != nil {
 		log.Errorf("Could not create metricGen: %v", err)
 		panic(err)
 	}
 
-	metricGen, err := crgen.NewSingletonGen("100", 1)
+	metricGen, err := crgen.NewSingletonGen("100", 1, "int")
 	if err != nil {
 		log.Errorf("Could not create metricGen: %v", err)
 		panic(err)
 	}
-	typeGen, err := crgen.NewSingletonGen("Static", 1)
+	typeGen, err := crgen.NewSingletonGen("Static", 1, "string")
 	if err != nil {
 		log.Errorf("Could not create typeGen: %v", err)
 		panic(err)
 	}
-	vrfGen, err := crgen.NewSingletonGen("default", 1)
+	vrfGen, err := crgen.NewSingletonGen("default", 1, "string")
 	if err != nil {
 		log.Errorf("Could not create vrfGen: %v", err)
 		panic(err)
