@@ -3,6 +3,7 @@ package crgen
 import (
 	"context"
 	"fmt"
+	"encoding/json"
 
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -30,13 +32,13 @@ type CRGen struct {
 }
 
 var (
-	scheme = runtime.NewScheme()
+	myScheme = runtime.NewScheme()
 )
 
 func init() {
-	_ = v1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	_ = appsv1.AddToScheme(scheme)
+	_ = v1.AddToScheme(myScheme)
+	_ = corev1.AddToScheme(myScheme)
+	_ = appsv1.AddToScheme(myScheme)
 }
 
 func (c *CRGen) getKubeClient(ctx context.Context) (client.Client, error) {
@@ -48,7 +50,7 @@ func (c *CRGen) getKubeClient(ctx context.Context) (client.Client, error) {
 
 	log.Debugf("get kubeconfig info: %v", config)
 	// creates the kubeclient
-	kubeClient, err := client.New(config, client.Options{Scheme: scheme})
+	kubeClient, err := client.New(config, client.Options{Scheme: myScheme})
 	if err != nil {
 		log.Errorf("can't create kubeClient : %s", err)
 		return nil, fmt.Errorf("can't create kubeClient : %s", err)
@@ -105,7 +107,7 @@ func (c *CRGen)getSpecNames() ([]string, error) {
 
 func (c *CRGen)Generate() error {
 	ctx := context.Background()
-	kubeClient, err := c.getKubeClient(ctx)
+	_, err := c.getKubeClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -138,14 +140,31 @@ func (c *CRGen)Generate() error {
 		return err
 	}
 	crVal := crGenerator.Next()
+	cnt := 0
 	CR := map[string]string{
 		"apiVersion": c.CRApiVersion,
 		"kind": c.CRKind,
 		"spec": crVal,
 	}
-	
+	// obj := v1.CustomResourceDefinition{}
+//		v1.ObjectMeta{Name: fmt.Sprintf("%s-crgen-%d", c.CRKind, cnt), Namespace: c.CRDNamespace},
+//	}
 	for ;crVal != NIL; {
-		kubeClient.Create(ctx, CR)
+		cnt = cnt + 1
+		bytes, err := json.Marshal(CR)
+		if err != nil {
+			log.Errorf("Marshal error: %v", err)
+		}
+		// obj, groupVersionKind, err := scheme.Codecs.UniversalDeserializer().Decode(bytes, nil, nil)
+		_, _, err = scheme.Codecs.UniversalDeserializer().Decode(bytes, nil, nil)
+		if err != nil {
+			log.Errorf("Error while decoding json to object: %v", err)
+		}
+		
+		/*if err = json.Unmarshal(bytes, &obj); err != nil {
+			log.Errorf("Unmarshal error: %v", err)
+		}*/
+		// kubeClient.Create(ctx, obj)
 		crVal = crGenerator.Next()
 		CR = map[string]string{
 			"apiVersion": c.CRApiVersion,

@@ -23,9 +23,9 @@ func NewSingletonGen(val string, cnt uint32) (*SingletonGen, error) {
 }
 
 func (g *SingletonGen) Next() string {
-	if g.Count {
+	if g.Count != 0 {
 		g.Count = g.Count - 1
-		return Val
+		return g.Val
 	}
 	return NIL
 }
@@ -60,30 +60,30 @@ type CartesianGen struct {
 	lastFieldName string
 }
 
-func NewCartesianGen(fileds map[string]Generator) (*CartesianGen, error) {
+func NewCartesianGen(fields map[string]Generator) (*CartesianGen, error) {
 	return &CartesianGen{Fields: fields}, nil
 }
 
 func (g *CartesianGen) initIndices() {
-	for f := range Fields {
-		indices[f] := 0
-		initFields[f] = Fields[f]
-		lastFieldName = f
+	for f := range g.Fields {
+		g.indices[f] = 0
+		g.initFields[f] = g.Fields[f]
+		g.lastFieldName = f
 	}
 }
 
 func (g *CartesianGen) Next() string {
-	v = map[string]string
-	if indices == nil {
+	// v := make(map[string]string)
+	if g.indices == nil {
 		// first time, initialize indices
 		g.initIndices()
-		for f, gen := range Fields {
+		for f, gen := range g.Fields {
 			g.current[f] = gen.Next()
 		}
 		bytes, _ := json.Marshal(g.current)
 		return string(bytes)
 	}
-	for f, gen := range Fields {
+	for f, gen := range g.Fields {
 		nextVal := gen.Next()
 		if nextVal != NIL {
 			g.current[f] = nextVal
@@ -93,8 +93,8 @@ func (g *CartesianGen) Next() string {
 		/*if f == lastFieldName {
 			return NIL
 		}*/
-		Fields[f] = initFields[f]
-		g.current[f] = Fields[f].Next()
+		g.Fields[f] = g.initFields[f]
+		g.current[f] = g.Fields[f].Next()
 	}
 	return NIL
 }
