@@ -3,7 +3,6 @@ module github.com/gshirazi/crgen
 go 1.17
 
 require (
-	github.com/jinzhu/copier v0.3.5
 	github.com/korylprince/ipnetgen v1.0.1
 	github.com/sirupsen/logrus v1.8.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
